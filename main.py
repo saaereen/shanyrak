@@ -1,6 +1,6 @@
 from fastapi import FastAPI, status, Depends, HTTPException
 from typing import Annotated
-from models import Users, UpdateUserRequest
+from models import Users, UpdateUserRequest, Shanyrak, CreateShanyrakRequest
 from database import engine, SessionLocal
 from sqlalchemy.orm import Session
 import auth
@@ -31,3 +31,28 @@ async def user(user: user_dependency, db: db_dependency):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
     return {"User" : "user"}
+
+@app.post("/shanyraks/", status_code=status.HTTP_200_OK)
+async def create_shanyrak(
+    shanyrak_request: CreateShanyrakRequest,
+    user: user_dependency,
+    db: db_dependency
+):
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+
+    shanyrak_model = Shanyrak(
+        type=shanyrak_request.type,
+        price=shanyrak_request.price,
+        address=shanyrak_request.address,
+        area=shanyrak_request.area,
+        rooms_count=shanyrak_request.rooms_count,
+        description=shanyrak_request.description,
+        owner_id=user['id']
+    )
+
+    db.add(shanyrak_model)
+    db.commit()
+    db.refresh(shanyrak_model)
+
+    return {"id": shanyrak_model.id}
