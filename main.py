@@ -115,3 +115,25 @@ async def update_shanyrak(
     db.commit()
 
     return {"message": "Shanyrak updated successfully"}
+
+@app.delete("/shanyraks/{shanyrak_id}", status_code=status.HTTP_200_OK)
+async def delete_shanyrak(
+    shanyrak_id: int,
+    user: user_dependency,
+    db: db_dependency
+):
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+
+    shanyrak = db.query(Shanyrak).filter(Shanyrak.id == shanyrak_id).first()
+    if not shanyrak:
+        raise HTTPException(status_code=404, detail='Shanyrak not found')
+
+    # Checks if the user owns the shanyrak
+    if shanyrak.owner_id != user['id']:
+        raise HTTPException(status_code=403, detail='Unauthorized')
+
+    db.delete(shanyrak)
+    db.commit()
+
+    return {"message": "Shanyrak deleted successfully"}
