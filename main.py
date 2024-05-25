@@ -56,3 +56,30 @@ async def create_shanyrak(
     db.refresh(shanyrak_model)
 
     return {"id": shanyrak_model.id}
+
+@app.get("/shanyraks/{shanyrak_id}", status_code=status.HTTP_200_OK)
+async def get_shanyrak_details(
+    shanyrak_id: int,
+    user: user_dependency,
+    db: db_dependency
+):
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+
+    shanyrak = db.query(Shanyrak).filter(Shanyrak.id == shanyrak_id).first()
+    if not shanyrak:
+        raise HTTPException(status_code=404, detail='Shanyrak not found')
+
+    if shanyrak.owner_id != user['id']:
+        raise HTTPException(status_code=403, detail='Unauthorized')
+
+    return {
+        "id": shanyrak.id,
+        "type": shanyrak.type,
+        "price": shanyrak.price,
+        "address": shanyrak.address,
+        "area": shanyrak.area,
+        "rooms_count": shanyrak.rooms_count,
+        "description": shanyrak.description,
+        "user_id": shanyrak.owner_id
+    }
