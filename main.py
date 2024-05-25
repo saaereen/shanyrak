@@ -83,3 +83,35 @@ async def get_shanyrak_details(
         "description": shanyrak.description,
         "user_id": shanyrak.owner_id
     }
+
+
+
+@app.patch("/shanyraks/{shanyrak_id}", status_code=status.HTTP_200_OK)
+async def update_shanyrak(
+    shanyrak_id: int,
+    shanyrak_data: CreateShanyrakRequest,
+    user: user_dependency,
+    db: db_dependency
+):
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+
+    shanyrak = db.query(Shanyrak).filter(Shanyrak.id == shanyrak_id).first()
+    if not shanyrak:
+        raise HTTPException(status_code=404, detail='Shanyrak not found')
+
+    # Checks if the user owns the shanyrak
+    if shanyrak.owner_id != user['id']:
+        raise HTTPException(status_code=403, detail='Unauthorized')
+
+    # Updates the shanyrak data
+    shanyrak.type = shanyrak_data.type
+    shanyrak.price = shanyrak_data.price
+    shanyrak.address = shanyrak_data.address
+    shanyrak.area = shanyrak_data.area
+    shanyrak.rooms_count = shanyrak_data.rooms_count
+    shanyrak.description = shanyrak_data.description
+
+    db.commit()
+
+    return {"message": "Shanyrak updated successfully"}
