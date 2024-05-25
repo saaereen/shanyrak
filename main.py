@@ -1,9 +1,10 @@
 from fastapi import FastAPI, status, Depends, HTTPException
 from typing import Annotated
-import models
+from models import Users, UpdateUserRequest
 from database import engine, SessionLocal
 from sqlalchemy.orm import Session
 import auth
+import models
 from auth import get_current_user
 
 

@@ -1,4 +1,5 @@
 from database import Base
+from pydantic import BaseModel, Field
 from sqlalchemy import Column, Integer, String
 
 class Users(Base):
@@ -11,3 +12,8 @@ class Users(Base):
     name = Column(String)
     city = Column(String)
     
+class UpdateUserRequest(BaseModel):
+    username: str | None = None
+    phone: str | None = None
+    name: str | None = None
+    city: str | None = None
