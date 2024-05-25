@@ -1,6 +1,7 @@
 from fastapi import HTTPException, APIRouter, Depends
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from sqlalchemy import update
 from starlette import status
 from database import SessionLocal
 from models import UpdateUserRequest, Users
@@ -99,21 +100,36 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
     return {'access_token': token, 'token_type': 'bearer'}
 
 
-@router.patch("/users/me", response_model=Token)
-async def update_user(update_data: CreateUserRequest, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+
+
+@router.patch("/users/me")
+async def update_user(user_data: UpdateUserRequest, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
     user_id = current_user['id']
     db_user = db.query(Users).filter(Users.id == user_id).first()
     if not db_user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    
-    update_data_dict = update_data.dict(exclude_unset=True)
-    for key, value in update_data_dict.items():
-        setattr(db_user, key, value)
+        raise HTTPException(status_code=404, detail="User not found")
+
+    for field, value in user_data:
+        setattr(db_user, field, value)
     
     db.commit()
-
-    token = create_access_token(db_user.username, db_user.id, timedelta(minutes=20))
-    return {'access_token': token, 'token_type': 'bearer'}
+    return {"msg": "User updated successfully"}
 
 
-     
+@router.get("/users/me")
+async def get_user_info(current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    user_id = current_user['id']
+    db_user = db.query(Users).filter(Users.id == user_id).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {
+        "id": db_user.id,
+        "username": db_user.username,
+        "phone": db_user.phone,
+        "name": db_user.name,
+        "city": db_user.city
+    }
+
+
+    
