@@ -12,7 +12,7 @@ class Users(Base):
     phone = Column(String)
     name = Column(String)
     city = Column(String)
-    shanyraks = relationship('Shanyrak', back_populates='owner')
+    comments = relationship("Comment", back_populates="owner")
 
     
 class UpdateUserRequest(BaseModel):
@@ -34,7 +34,7 @@ class Shanyrak(Base):
     description = Column(String, nullable=False)
     owner_id = Column(Integer, ForeignKey('users.id'))
 
-    owner = relationship('Users', back_populates='shanyraks')
+    comments = relationship("Comment", back_populates="shanyrak")
 
 class CreateShanyrakRequest(BaseModel):
     type: str
@@ -43,3 +43,18 @@ class CreateShanyrakRequest(BaseModel):
     area: str
     rooms_count: int
     description: str    
+
+
+class Comment(Base):
+    __tablename__ = 'comments'
+
+    id = Column(Integer, primary_key=True, index=True)
+    content = Column(String, nullable=False)
+    shanyrak_id = Column(Integer, ForeignKey('shanyraks.id'))
+    user_id = Column(Integer, ForeignKey('users.id'))
+
+    owner = relationship('Users', back_populates='comments')
+    shanyrak = relationship('Shanyrak', back_populates='comments')
+
+class CreateCommentRequest(BaseModel):
+    content: str    

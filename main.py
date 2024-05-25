@@ -1,11 +1,12 @@
 from fastapi import FastAPI, status, Depends, HTTPException
 from typing import Annotated
-from models import Users, UpdateUserRequest, Shanyrak, CreateShanyrakRequest
+from models import Users, UpdateUserRequest, Shanyrak, CreateShanyrakRequest, CreateCommentRequest, Comment
 from database import engine, SessionLocal
 from sqlalchemy.orm import Session
 import auth
 import models
 from auth import get_current_user
+
 
 
 app = FastAPI()
@@ -137,3 +138,31 @@ async def delete_shanyrak(
     db.commit()
 
     return {"message": "Shanyrak deleted successfully"}
+
+
+
+@app.post("/shanyraks/{shanyrak_id}/comments", status_code=status.HTTP_200_OK)
+async def create_comment(
+    shanyrak_id: int,
+    comment_data: CreateCommentRequest,
+    user: user_dependency,
+    db: db_dependency
+):
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+
+    shanyrak = db.query(Shanyrak).filter(Shanyrak.id == shanyrak_id).first()
+    if not shanyrak:
+        raise HTTPException(status_code=404, detail='Shanyrak not found')
+
+    # Create the comment
+    comment = Comment(
+        content=comment_data.content,
+        shanyrak_id=shanyrak_id,
+        user_id=user['id']
+    )
+
+    db.add(comment)
+    db.commit()
+
+    return {"message": "Comment added successfully"}
