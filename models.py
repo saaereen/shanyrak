@@ -14,6 +14,16 @@ class Users(Base):
     city = Column(String)
     comments = relationship("Comment", back_populates="owner")
 
+class CreateUserRequest(BaseModel):
+    username: str
+    password: str
+    phone: str
+    name: str
+    city: str
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str   
     
 class UpdateUserRequest(BaseModel):
     username: str | None = None
@@ -58,3 +68,7 @@ class Comment(Base):
 
 class CreateCommentRequest(BaseModel):
     content: str    
+
+class UpdateCommentResponse(BaseModel):
+    message: str
+    original_content: str   

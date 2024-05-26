@@ -1,6 +1,7 @@
 from fastapi import FastAPI, status, Depends, HTTPException
 from typing import Annotated
-from models import Users, UpdateUserRequest, Shanyrak, CreateShanyrakRequest, CreateCommentRequest, Comment
+from models import Users, UpdateUserRequest, Shanyrak, CreateShanyrakRequest, CreateCommentRequest, Comment, UpdateCommentResponse
+from database import engine, SessionLocal
 from database import engine, SessionLocal
 from sqlalchemy.orm import Session
 import auth
@@ -166,3 +167,71 @@ async def create_comment(
     db.commit()
 
     return {"message": "Comment added successfully"}
+
+
+@app.get("/shanyraks/{id}/comments/{comment_id}", status_code=status.HTTP_200_OK)
+async def get_comment(
+    id: int,
+    comment_id: int,
+    user: user_dependency,
+    db: db_dependency
+):
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+
+    comment = db.query(Comment).filter(Comment.id == comment_id, Comment.shanyrak_id == id).first()
+    if not comment:
+        raise HTTPException(status_code=404, detail='Comment not found')
+
+    if comment.user_id != user['id']:
+        raise HTTPException(status_code=403, detail='Unauthorized')
+
+    return {
+        "content": comment.content
+    }
+
+@app.patch("/shanyraks/{id}/comments/{comment_id}", response_model=UpdateCommentResponse, status_code=status.HTTP_200_OK)
+async def update_comment(
+    id: int,
+    comment_id: int,
+    comment_data: CreateCommentRequest,
+    user: user_dependency,
+    db: db_dependency
+):
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+
+    comment = db.query(Comment).filter(Comment.id == comment_id, Comment.shanyrak_id == id).first()
+    if not comment:
+        raise HTTPException(status_code=404, detail='Comment not found')
+
+    if comment.user_id != user['id']:
+        raise HTTPException(status_code=403, detail='Unauthorized')
+
+    original_content = comment.content
+    comment.content = comment_data.content
+    db.commit()
+
+    return UpdateCommentResponse(message="Comment updated successfully", original_content=original_content)
+
+@app.delete("/shanyraks/{id}/comments/{comment_id}", status_code=status.HTTP_200_OK)
+async def delete_comment(
+    id: int,
+    comment_id: int,
+    user: user_dependency,
+    db: db_dependency
+):
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+
+    comment = db.query(Comment).filter(Comment.id == comment_id, Comment.shanyrak_id == id).first()
+    if not comment:
+        raise HTTPException(status_code=404, detail='Comment not found')
+
+    if comment.user_id != user['id']:
+        raise HTTPException(status_code=403, detail='Unauthorized')
+
+    db.delete(comment)
+    db.commit()
+
+    return {"message": "Comment deleted successfully"}

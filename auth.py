@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import update
 from starlette import status
 from database import SessionLocal
-from models import UpdateUserRequest, Users
+from models import UpdateUserRequest, Users, CreateUserRequest, Token
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
@@ -24,16 +24,7 @@ ALGORITHM = 'HS256'
 bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl='auth/users/login')
 
-class CreateUserRequest(BaseModel):
-    username: str
-    password: str
-    phone: str
-    name: str
-    city: str
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str    
+ 
 
 def get_db():
     db = SessionLocal()
@@ -77,8 +68,16 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
 
 
 @router.post("/users/", status_code=status.HTTP_201_CREATED)
-async def create_user(db: db_dependency,
-                      create_user_request: CreateUserRequest):
+async def create_user(
+    create_user_request: CreateUserRequest,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(db_dependency)
+):
+    if current_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot create a new user while logged in."
+        )
     create_user_model = Users(
         username=create_user_request.username,
         hashed_password=bcrypt_context.hash(create_user_request.password),
@@ -88,6 +87,8 @@ async def create_user(db: db_dependency,
     )
     db.add(create_user_model)
     db.commit()
+
+    return {"message": "User created successfully"}
 
 @router.post("/users/login", response_model=Token)  
 async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
